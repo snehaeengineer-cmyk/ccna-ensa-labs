@@ -1,0 +1,71 @@
+! ============================================
+! Router R2 - CCNA ENSA Lab 1
+! Single-Area OSPFv2 (core/hub), Default Route Origination
+! ============================================
+
+no ip domain-lookup
+hostname R2
+enable secret class
+
+line console 0
+ password cisco
+ login
+ logging synchronous
+exit
+
+line vty 0 4
+ password cisco
+ login
+exit
+
+service password-encryption
+
+! --- Loopback simulating internet-facing webserver (NOT advertised in OSPF) ---
+interface lo0
+ ip address 209.165.200.225 255.255.255.224
+exit
+
+! --- Serial interfaces ---
+interface s0/1/1
+ ip address 10.1.1.2 255.255.255.252
+ no shutdown
+exit
+
+interface s0/1/0
+ ip address 10.1.2.1 255.255.255.252
+ clock rate 128000
+ no shutdown
+exit
+
+! --- OSPF MD5 authentication on link to R1 (s0/1/1) ---
+interface s0/1/1
+ ip ospf message-digest-key 1 md5 class456
+ ip ospf authentication message-digest
+exit
+
+! --- Static default route out the loopback (simulated internet) ---
+ip route 0.0.0.0 0.0.0.0 lo0
+
+! --- OSPF process ---
+router ospf 1
+ router-id 2.2.2.2
+ area 0 authentication message-digest
+ network 10.1.1.0 0.0.0.3 area 0
+ network 10.1.2.0 0.0.0.3 area 0
+ ! NOTE: Lo0 (209.165.200.225/27) deliberately NOT advertised
+ default-information originate
+ auto-cost reference-bandwidth 1000
+exit
+
+! --- Webserver simulation (local user + HTTP) ---
+username webui privilege 15 password cisco
+ip http server
+ip http authentication local
+
+end
+copy running-config startup-config
+
+! --- Verification commands used ---
+! show ip route
+! show ip protocols
+! show ip ospf neighbor

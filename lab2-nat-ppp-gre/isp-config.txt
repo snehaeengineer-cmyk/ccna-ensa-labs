@@ -1,0 +1,63 @@
+! ============================================
+! Router ISP - CCNA ENSA Lab 2
+! Core/Transit Router, PPP/CHAP, Webserver Loopback
+! ============================================
+
+no ip domain-lookup
+hostname ISP
+enable secret class
+
+line console 0
+ password cisco
+ login
+ logging synchronous
+exit
+
+line vty 0 4
+ password cisco
+ login
+exit
+
+service password-encryption
+
+! --- Serial link to WEST (this end is DCE) ---
+interface s0/1/0
+ ip address 209.165.201.17 255.255.255.252
+ clock rate 8000000
+ encapsulation ppp
+ ppp authentication chap
+ no shutdown
+exit
+
+! --- Serial link to EAST (this end is DCE) ---
+interface s0/1/1
+ ip address 209.165.203.21 255.255.255.252
+ clock rate 8000000
+ encapsulation ppp
+ ppp authentication chap
+ no shutdown
+exit
+
+! --- CHAP credentials for both peers (username = peer hostname) ---
+username WEST password cisco
+username EAST password cisco
+
+! --- Loopback simulating a public-facing webserver ---
+interface lo1
+ ip address 209.165.200.225 255.255.255.224
+exit
+
+! --- Local webserver simulation ---
+username webuser privilege 15 secret 0 webpass
+ip http server
+ip http authentication local
+
+end
+copy running-config startup-config
+
+! --- Verification commands used ---
+! show interfaces s0/1/0
+! show interfaces s0/1/1
+! show ip interface brief
+! ping 209.165.201.18
+! ping 209.165.203.22

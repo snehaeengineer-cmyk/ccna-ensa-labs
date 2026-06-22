@@ -1,0 +1,69 @@
+! ============================================
+! Router R1 - CCNA ENSA Lab 3
+! OSPF, NTP Client, SNMP Agent (RO public / RW admin via ACL)
+! ============================================
+
+no ip domain-lookup
+hostname R1
+enable secret class
+
+line console 0
+ password cisco
+ login
+ logging synchronous
+exit
+
+line vty 0 4
+ password cisco
+ login
+exit
+
+service password-encryption
+
+! --- Interfaces ---
+interface g0/0/1
+ ip address 192.168.1.1 255.255.255.0
+ no shutdown
+exit
+
+interface g0/0/0
+ ip address 10.10.1.1 255.255.255.252
+ no shutdown
+exit
+
+! --- OSPF: connected networks only ---
+router ospf 1
+ network 192.168.1.0 0.0.0.255 area 0
+ network 10.10.1.0 0.0.0.3 area 0
+exit
+
+! --- NTP client: syncs from R2 (the NTP master) ---
+ntp server 10.10.1.2
+
+! --- Timestamps for logging (needed for meaningful Syslog correlation) ---
+service timestamps log datetime msec
+
+! --- SNMP agent configuration ---
+! Read-only access for everyone via community "public"
+snmp-server community public RO
+! Write access only via community "admin", restricted to a single host by ACL
+snmp-server community admin RW SNMP_ACL
+snmp-server location NetOpCenter
+snmp-server contact MyAdmin
+snmp-server host 192.168.1.3 version 2c public
+snmp-server enable traps
+
+ip access-list standard SNMP_ACL
+ permit host 192.168.42.1
+exit
+
+end
+copy running-config startup-config
+
+! --- Verification commands used ---
+! show ntp status
+! show ntp associations
+! show ip ospf neighbor
+! show ip route
+! (from PC-A) iReasoning MIB Browser: walk sysName, sysDescr, ipInReceives
+! show run | include snmp

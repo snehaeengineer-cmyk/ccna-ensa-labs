@@ -1,0 +1,83 @@
+! ============================================
+! Router WEST - CCNA ENSA Lab 2
+! NAPT, PPP/CHAP Authentication, GRE Tunnel + OSPF
+! ============================================
+
+no ip domain-lookup
+hostname WEST
+enable secret class
+
+line console 0
+ password cisco
+ login
+ logging synchronous
+exit
+
+line vty 0 4
+ password cisco
+ login
+exit
+
+service password-encryption
+
+! --- LAN interface (NAT inside) ---
+interface g0/0/0
+ ip address 192.168.1.1 255.255.255.0
+ ip nat inside
+ no shutdown
+exit
+
+! --- WAN serial interface to ISP, PPP + CHAP, NAT outside ---
+interface s0/1/0
+ ip address 209.165.201.18 255.255.255.252
+ encapsulation ppp
+ ppp authentication chap
+ ip nat outside
+ no shutdown
+exit
+
+! --- CHAP credentials: username = peer's hostname (ISP), shared secret ---
+username ISP password cisco
+
+! --- Static default route toward ISP ---
+ip route 0.0.0.0 0.0.0.0 s0/1/0
+
+! --- Standard ACL identifying the inside network eligible for NAT ---
+access-list 1 permit 192.168.1.0 0.0.0.255
+
+! --- Dynamic NAPT (overload) to outside interface ---
+ip nat inside source list 1 interface s0/1/0 overload
+
+! --- GRE tunnel to EAST (Lab Task 3 variant) ---
+interface tunnel0
+ ip address 172.16.12.1 255.255.255.252
+ tunnel source s0/1/0
+ tunnel destination 209.165.203.22
+exit
+
+! --- Static route to EAST's LAN via the tunnel (used before OSPF-over-tunnel) ---
+ip route 192.168.3.0 255.255.255.0 172.16.12.2
+
+! --- OSPF over the tunnel only -- ISP/public address space intentionally excluded ---
+router ospf 1
+ network 192.168.1.0 0.0.0.255 area 0
+ network 172.16.12.0 0.0.0.3 area 0
+exit
+
+! --- Local webserver simulation ---
+username webuser privilege 15 password cisco
+ip http server
+ip http authentication local
+
+end
+copy running-config startup-config
+
+! --- Verification commands used ---
+! show ip nat statistics
+! show ip nat translations
+! show interfaces s0/1/0
+! show interface tunnel0
+! show ip route
+! debug ppp negotiation
+! debug ppp packet
+! ping / traceroute 192.168.3.3

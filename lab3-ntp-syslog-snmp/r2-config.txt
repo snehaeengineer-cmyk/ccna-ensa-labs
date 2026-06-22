@@ -1,0 +1,61 @@
+! ============================================
+! Router R2 - CCNA ENSA Lab 2
+! OSPF, NTP Master (stratum 4), Syslog remote logging
+! ============================================
+
+no ip domain-lookup
+hostname R2
+enable secret class
+
+line console 0
+ password cisco
+ login
+ logging synchronous
+exit
+
+line vty 0 4
+ password cisco
+ login
+exit
+
+service password-encryption
+
+! --- Interfaces ---
+interface g0/0/1
+ ip address 192.168.3.1 255.255.255.0
+ no shutdown
+exit
+
+interface g0/0/0
+ ip address 10.10.1.2 255.255.255.252
+ no shutdown
+exit
+
+! --- OSPF: connected networks only ---
+router ospf 1
+ network 192.168.3.0 0.0.0.255 area 0
+ network 10.10.1.0 0.0.0.3 area 0
+exit
+
+! --- NTP master: self-declared authoritative time source, stratum 4 ---
+ntp master 4
+
+! --- Timestamps for logging ---
+service timestamps log datetime msec
+
+! --- Remote Syslog server (Server0, running Tftpd32) ---
+logging host 192.168.3.3
+
+! --- Trap (forwarding) severity threshold: notifications (severity 5) ---
+logging trap notifications
+
+end
+copy running-config startup-config
+
+! --- Verification commands used ---
+! show clock detail
+! show ntp status
+! show run | include timestamp
+! show logging
+! interface lo0   (used to generate a test LINEPROTO-5-UPDOWN message)
+! shutdown / no shutdown on g0/0/0  (used to test link-state vs OSPF Syslog timing)

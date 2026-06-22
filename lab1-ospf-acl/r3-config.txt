@@ -1,0 +1,77 @@
+! ============================================
+! Router R3 - CCNA ENSA Lab 1
+! Single-Area OSPFv2, Named Extended ACL (WEB-POLICY)
+! ============================================
+
+no ip domain-lookup
+hostname R3
+enable secret class
+
+line console 0
+ password cisco
+ login
+ logging synchronous
+exit
+
+line vty 0 4
+ password cisco
+ login
+exit
+
+service password-encryption
+
+! --- Ethernet interface ---
+interface g0/0/0
+ ip address 192.168.30.1 255.255.255.0
+ no shutdown
+exit
+
+! --- Serial interfaces ---
+interface s0/1/1
+ ip address 10.1.2.2 255.255.255.252
+ no shutdown
+exit
+
+interface s0/1/0
+ ip address 10.1.3.2 255.255.255.252
+ clock rate 128000
+ no shutdown
+exit
+
+! --- Manual OSPF cost override on R3<->R1 path (forces preference via R2) ---
+interface s0/1/0
+ ip ospf cost 31250
+exit
+
+! --- OSPF process ---
+router ospf 1
+ router-id 3.3.3.3
+ network 192.168.30.0 0.0.0.255 area 0
+ network 10.1.2.0 0.0.0.3 area 0
+ network 10.1.3.0 0.0.0.3 area 0
+ auto-cost reference-bandwidth 1000
+exit
+
+! --- Named extended ACL: WEB-POLICY ---
+! Policy 3: allow 192.168.30.0/24 to reach R1 webserver (192.168.10.0/24) via HTTP only;
+! block 192.168.30.0/24 from reaching any other network via HTTP (implicit deny handles this).
+ip access-list extended WEB-POLICY
+ permit tcp 192.168.30.0 0.0.0.255 192.168.10.0 0.0.0.255 eq 80
+! --- Inserted later: allow ICMP ping between the two LANs ---
+ permit icmp 192.168.30.0 0.0.0.255 192.168.10.0 0.0.0.255 echo
+ permit icmp 192.168.30.0 0.0.0.255 192.168.10.0 0.0.0.255 echo-reply
+exit
+
+interface g0/0/0
+ ip access-group WEB-POLICY out
+exit
+
+end
+copy running-config startup-config
+
+! --- Verification commands used ---
+! show ip ospf neighbor
+! show ip protocols
+! show ip route
+! show access-lists
+! show ip interface g0/0/0
