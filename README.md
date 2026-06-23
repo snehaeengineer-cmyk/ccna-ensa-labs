@@ -1,5 +1,11 @@
 # CCNA ENSA Labs
 
+![Cisco IOS](https://img.shields.io/badge/Cisco-IOS-blue)
+![Routing](https://img.shields.io/badge/Routing-OSPF-success)
+![Security](https://img.shields.io/badge/Security-ACLs-orange)
+![WAN](https://img.shields.io/badge/WAN-GRE%20%26%20PPP-purple)
+![Monitoring](https://img.shields.io/badge/Monitoring-SNMP%20%26%20Syslog-blue)
+
 Hands-on routing, WAN, and network-management labs completed for **Enterprise Networking, Security, and Automation (ENSA)**, the second course in the CCNA curriculum (following SRWE).
 
 All configurations were built and verified on physical Cisco gear (2960 switches, ISR4321 routers) in a lab environment, console-cable access via PuTTY, with traffic verification via Wireshark and SNMP MIB browser tooling where applicable.
